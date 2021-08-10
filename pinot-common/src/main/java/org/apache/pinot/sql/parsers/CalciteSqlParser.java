@@ -1099,7 +1099,8 @@ public class CalciteSqlParser {
     }
     String functionName = function.getOperator();
     if (compilable) {
-      FunctionInfo functionInfo = FunctionRegistry.getFunctionInfo(functionName, numOperands);
+      String[] paramClassName = getParamClassNameArray(operands);
+      FunctionInfo functionInfo = FunctionRegistry.getFunctionInfo(functionName, paramClassName);
       if (functionInfo != null) {
         Object[] arguments = new Object[numOperands];
         for (int i = 0; i < numOperands; i++) {
@@ -1132,5 +1133,13 @@ public class CalciteSqlParser {
       return false;
     }
     return false;
+  }
+
+  private static String[] getParamClassNameArray(List<Expression> operands) {
+    String[] paramClassName = new String[operands.size()];
+    for (int i = 0; i < operands.size(); i++) {
+      paramClassName[i] = operands.get(i).getClass().getSimpleName();
+    }
+    return paramClassName;
   }
 }

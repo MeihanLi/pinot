@@ -37,9 +37,10 @@ public class PostAggregationFunction {
 
   public PostAggregationFunction(String functionName, ColumnDataType[] argumentTypes) {
     int numArguments = argumentTypes.length;
-    FunctionInfo functionInfo = FunctionRegistry.getFunctionInfo(functionName, numArguments);
+    String[] paramClassName = getParamClassNameArray(argumentTypes);
+    FunctionInfo functionInfo = FunctionRegistry.getFunctionInfo(functionName, paramClassName);
     Preconditions
-        .checkArgument(functionInfo != null, "Unsupported function: %s with %s parameters", functionName, numArguments);
+        .checkArgument(functionInfo != null, "Unsupported function: %s with %s parameters: %s", functionName, numArguments, FunctionRegistry.getSortedParamClassNameString(paramClassName));
     _functionInvoker = new FunctionInvoker(functionInfo);
     Class<?>[] parameterClasses = _functionInvoker.getParameterClasses();
     PinotDataType[] parameterTypes = _functionInvoker.getParameterTypes();
@@ -83,5 +84,13 @@ public class PostAggregationFunction {
     }
     Object result = _functionInvoker.invoke(arguments);
     return _resultType == ColumnDataType.STRING ? result.toString() : result;
+  }
+
+  private String[] getParamClassNameArray(ColumnDataType[] argumentTypes) {
+    String[] paramClassName = new String[argumentTypes.length];
+    for (int i = 0; i < argumentTypes.length; i++) {
+      paramClassName[i] = argumentTypes[i].getClass().getSimpleName();
+    }
+    return paramClassName;
   }
 }
