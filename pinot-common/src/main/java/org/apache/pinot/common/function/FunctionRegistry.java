@@ -20,6 +20,7 @@ package org.apache.pinot.common.function;
 
 import com.google.common.base.Preconditions;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -44,7 +45,7 @@ public class FunctionRegistry {
   }
 
   private static final Logger LOGGER = LoggerFactory.getLogger(FunctionRegistry.class);
-  private static final Map<String, Map<Integer, FunctionInfo>> FUNCTION_INFO_MAP = new HashMap<>();
+  private static final Map<String, Map<String, FunctionInfo>> FUNCTION_INFO_MAP = new HashMap<>();
 
   /**
    * Registers the scalar functions via reflection.
@@ -88,14 +89,16 @@ public class FunctionRegistry {
   }
 
   /**
-   * Registers a method with the given function name.
+   * Registers a method with the given function name and parameters
    */
   public static void registerFunction(String functionName, Method method) {
     FunctionInfo functionInfo = new FunctionInfo(method, method.getDeclaringClass());
     String canonicalName = canonicalize(functionName);
-    Map<Integer, FunctionInfo> functionInfoMap = FUNCTION_INFO_MAP.computeIfAbsent(canonicalName, k -> new HashMap<>());
-    Preconditions.checkState(functionInfoMap.put(method.getParameterCount(), functionInfo) == null,
-        "Function: %s with %s parameters is already registered", functionName, method.getParameterCount());
+    String[] paramClassName = getParamClassNameArray(method);
+    String paramTypeString = getSortedParamClassNameString(paramClassName);
+    Map<String, FunctionInfo> functionInfoMap = FUNCTION_INFO_MAP.computeIfAbsent(canonicalName, k -> new HashMap<>());
+    Preconditions.checkState(functionInfoMap.put(paramTypeString, functionInfo) == null,
+        "Function: %s with %s parameters : %s is already registered", functionName, method.getParameterCount(), paramTypeString);
   }
 
   /**
@@ -111,12 +114,34 @@ public class FunctionRegistry {
    * methods are already registered.
    */
   @Nullable
-  public static FunctionInfo getFunctionInfo(String functionName, int numParameters) {
-    Map<Integer, FunctionInfo> functionInfoMap = FUNCTION_INFO_MAP.get(canonicalize(functionName));
-    return functionInfoMap != null ? functionInfoMap.get(numParameters) : null;
+  public static FunctionInfo getFunctionInfo(String functionName, String[] paramClassName) {
+    String paramTypeString = getSortedParamClassNameString(paramClassName);
+    Map<String, FunctionInfo> functionInfoMap = FUNCTION_INFO_MAP.get(canonicalize(functionName));
+    return functionInfoMap != null ? functionInfoMap.get(paramTypeString) : null;
   }
 
   private static String canonicalize(String functionName) {
     return StringUtils.remove(functionName, '_').toLowerCase();
+  }
+
+  private static String[] getParamClassNameArray(Method method) {
+    Class[] paramClass = method.getParameterTypes();
+    String[] paramClassName = new String[paramClass.length];
+    for (int i = 0; i < paramClass.length; i++) {
+      paramClassName[i] = paramClass[i].getSimpleName();
+    }
+    return paramClassName;
+  }
+
+  public static String getSortedParamClassNameString(String[] paramClassName) {
+    Arrays.sort(paramClassName);
+    StringBuilder sb = new StringBuilder();
+    for (String name : paramClassName) {
+      if (sb.length() > 0) {
+        sb.append(",");
+      }
+      sb.append(name);
+    }
+    return sb.toString();
   }
 }

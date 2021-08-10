@@ -68,13 +68,22 @@ public class InbuiltFunctionEvaluator implements FunctionEvaluator {
           childNodes[i] = planExecution(arguments.get(i));
         }
         String functionName = function.getFunctionName();
-        FunctionInfo functionInfo = FunctionRegistry.getFunctionInfo(functionName, numArguments);
-        Preconditions.checkState(functionInfo != null, "Unsupported function: %s with %s parameters", functionName,
-            numArguments);
+        String[] paramClassName = getParamClassNameArray(arguments);
+        FunctionInfo functionInfo = FunctionRegistry.getFunctionInfo(functionName, paramClassName);
+        Preconditions.checkState(functionInfo != null, "Unsupported function: %s with %s parameters: %s", functionName,
+            numArguments, FunctionRegistry.getSortedParamClassNameString(paramClassName));
         return new FunctionExecutionNode(functionInfo, childNodes);
       default:
         throw new IllegalStateException();
     }
+  }
+
+  private String[] getParamClassNameArray(List<ExpressionContext> arguments) {
+    String[] paramClassName = new String[arguments.size()];
+    for (int i = 0; i < arguments.size(); i++) {
+      paramClassName[i] = arguments.get(i).getClass().getSimpleName();
+    }
+    return paramClassName;
   }
 
   @Override

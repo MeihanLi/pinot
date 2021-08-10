@@ -193,10 +193,11 @@ public class TransformFunctionFactory {
           }
         } else {
           // Scalar function
-          FunctionInfo functionInfo = FunctionRegistry.getFunctionInfo(functionName, numArguments);
+          String[] paramClassName = getParamClassNameArray(arguments);
+          FunctionInfo functionInfo = FunctionRegistry.getFunctionInfo(functionName, paramClassName);
           if (functionInfo == null) {
             throw new BadQueryRequestException(
-                String.format("Unsupported function: %s with %d parameters", functionName, numArguments));
+                String.format("Unsupported function: %s with %d parameters: %s", functionName, numArguments, FunctionRegistry.getSortedParamClassNameString(paramClassName)));
           }
           transformFunction = new ScalarTransformFunctionWrapper(functionInfo);
         }
@@ -224,5 +225,13 @@ public class TransformFunctionFactory {
 
   private static String canonicalize(String functionName) {
     return StringUtils.remove(functionName, '_').toLowerCase();
+  }
+
+  private static String[] getParamClassNameArray(List<ExpressionContext> arguments) {
+    String[] paramClassName = new String[arguments.size()];
+    for (int i = 0; i < arguments.size(); i++) {
+      paramClassName[i] = arguments.get(i).getClass().getSimpleName();
+    }
+    return paramClassName;
   }
 }
